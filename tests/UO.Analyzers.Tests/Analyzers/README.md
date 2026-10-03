@@ -1,0 +1,1 @@
+Add custom analyzer tests here, grouped by rule. Use `Infrastructure.AnalyzerTest<TAnalyzer>` for diagnostic location, arguments, severity, generated-code, cancellation and concurrent-analysis cases. CA1848 is tested through Microsoft's actual analyzer in the CodeFixes integration tests.

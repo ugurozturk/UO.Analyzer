@@ -1,0 +1,35 @@
+name: build-test-pack
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: dotnet restore
+      - run: dotnet build -c Release --no-restore
+      - run: dotnet test -c Release --no-build --logger trx --results-directory artifacts/test-results
+      - run: dotnet pack -c Release --no-build
+      - run: python3 scripts/verify-package.py artifacts/packages/UO.Analyzers.1.0.0.nupkg
+      - run: dotnet restore tests/PackageConsumer/PackageConsumer.csproj --source ./artifacts/packages --source https://api.nuget.org/v3/index.json --packages ./artifacts/consumer-packages
+      - run: dotnet build tests/PackageConsumer/PackageConsumer.csproj -c Release --no-restore
+      - run: python3 scripts/verify-package.py artifacts/packages/UO.Analyzers.1.0.0.nupkg --consumer tests/PackageConsumer
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: packages-and-test-results
+          path: |
+            artifacts/packages/*.nupkg
+            artifacts/test-results/*.trx

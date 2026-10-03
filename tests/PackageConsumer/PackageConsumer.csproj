@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)generated</CompilerGeneratedFilesOutputPath>
+    <AnalyzerPackageVersion Condition="'$(AnalyzerPackageVersion)' == ''">1.0.0</AnalyzerPackageVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="UO.Analyzers" VersionOverride="$(AnalyzerPackageVersion)" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+  <Target Name="VerifyAnalyzerAssets" AfterTargets="ResolveReferences">
+    <ItemGroup>
+      <UOAnalyzer Include="@(Analyzer)" Condition="'%(Filename)' == 'UO.Analyzers'" />
+      <UOCodeFix Include="@(Analyzer)" Condition="'%(Filename)' == 'UO.Analyzers.CodeFixes'" />
+      <UORuntimeAsset Include="@(ReferenceCopyLocalPaths)" Condition="'%(Filename)' == 'UO.Analyzers' Or '%(Filename)' == 'UO.Analyzers.CodeFixes'" />
+    </ItemGroup>
+    <Error Condition="'@(UOAnalyzer)' == '' Or '@(UOCodeFix)' == ''" Text="Both analyzer and code fix DLLs must resolve as analyzer assets." />
+    <Error Condition="'@(UORuntimeAsset)' != ''" Text="Analyzer assemblies must not be runtime references." />
+  </Target>
+</Project>

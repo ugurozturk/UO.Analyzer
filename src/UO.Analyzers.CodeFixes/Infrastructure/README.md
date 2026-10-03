@@ -1,0 +1,1 @@
+Place reusable IDE helpers here when at least two providers need them. Keep rule-specific eligibility, template parsing and transformation logic in their feature folder. Refactorings can live in `Refactorings/<Feature>/` in this assembly using `CodeRefactoringProvider`; they do not need a diagnostic ID.

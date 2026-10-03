@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsTestProject>true</IsTestProject>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="$(PkgMicrosoft_CodeAnalysis_NetAnalyzers)/analyzers/dotnet/*.dll" CopyToOutputDirectory="PreserveNewest" Link="TestAssets/%(Filename)%(Extension)" />
+    <ProjectReference Include="../../src/UO.Analyzers/UO.Analyzers.csproj" />
+    <ProjectReference Include="../../src/UO.Analyzers.CodeFixes/UO.Analyzers.CodeFixes.csproj" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.CodeFix.Testing" />
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" GeneratePathProperty="true" ExcludeAssets="all" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(PkgMicrosoft_CodeAnalysis_NetAnalyzers)/analyzers/dotnet/cs/*.dll" CopyToOutputDirectory="PreserveNewest" Link="TestAssets/%(Filename)%(Extension)" />
+    <None Include="$(PkgMicrosoft_Extensions_Logging_Abstractions)/analyzers/dotnet/roslyn4.4/cs/*.dll" CopyToOutputDirectory="PreserveNewest" Link="TestAssets/%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/UO.Analyzers/UO.Analyzers.csproj" />
+    <Project Path="src/UO.Analyzers.CodeFixes/UO.Analyzers.CodeFixes.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/UO.Analyzers.Tests/UO.Analyzers.Tests.csproj" />
+  </Folder>
+  <Folder Name="/packaging/">
+    <Project Path="packaging/UO.Analyzers.Package/UO.Analyzers.Package.csproj" />
+  </Folder>
+</Solution>
