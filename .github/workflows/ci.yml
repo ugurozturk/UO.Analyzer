@@ -22,10 +22,14 @@ jobs:
       - run: dotnet build -c Release --no-restore
       - run: dotnet test -c Release --no-build --logger trx --results-directory artifacts/test-results
       - run: dotnet pack -c Release --no-build
-      - run: python3 scripts/verify-package.py artifacts/packages/UO.Analyzers.1.0.0.nupkg
-      - run: dotnet restore tests/PackageConsumer/PackageConsumer.csproj --source ./artifacts/packages --source https://api.nuget.org/v3/index.json --packages ./artifacts/consumer-packages
-      - run: dotnet build tests/PackageConsumer/PackageConsumer.csproj -c Release --no-restore
-      - run: python3 scripts/verify-package.py artifacts/packages/UO.Analyzers.1.0.0.nupkg --consumer tests/PackageConsumer
+      - name: Read package version
+        run: |
+          version="$(dotnet msbuild packaging/UO.Analyzers.Package/UO.Analyzers.Package.csproj -nologo -getProperty:PackageVersion)"
+          echo "PACKAGE_VERSION=$version" >> "$GITHUB_ENV"
+      - run: python3 scripts/verify-package.py "artifacts/packages/UO.Analyzers.${PACKAGE_VERSION}.nupkg"
+      - run: dotnet restore tests/PackageConsumer/PackageConsumer.csproj -p:AnalyzerPackageVersion="$PACKAGE_VERSION" --source ./artifacts/packages --source https://api.nuget.org/v3/index.json --packages ./artifacts/consumer-packages
+      - run: dotnet build tests/PackageConsumer/PackageConsumer.csproj -c Release --no-restore -p:AnalyzerPackageVersion="$PACKAGE_VERSION"
+      - run: python3 scripts/verify-package.py "artifacts/packages/UO.Analyzers.${PACKAGE_VERSION}.nupkg" --consumer tests/PackageConsumer
       - uses: actions/upload-artifact@v4
         if: always()
         with:

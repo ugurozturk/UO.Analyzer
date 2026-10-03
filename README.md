@@ -7,7 +7,7 @@ Bu sürüm henüz `UO000X` kuralı yayımlamaz.
 
 ## Kurulum
 
-Paketi şirket NuGet feed'inize yayımladıktan sonra consumer projeye ekleyin:
+Paketi NuGet.org'a yayımladıktan sonra consumer projeye ekleyin:
 
 ```xml
 <PackageReference Include="UO.Analyzers"
@@ -17,6 +17,49 @@ Paketi şirket NuGet feed'inize yayımladıktan sonra consumer projeye ekleyin:
 
 Sürümü yayımlanan `x.y.z` ile değiştirin. Lokal deneme için `artifacts/packages` klasörünü
 NuGet source olarak kullanabilirsiniz. Repository oluşturulması paketi herhangi bir feed'e yayımlamaz.
+
+### NuGet.org'a otomatik yayımlama
+
+Yayımlama **Trusted Publishing (GitHub OIDC)** kullanır; GitHub'a kalıcı NuGet API key
+veya `NUGET_API_KEY` repository secret'ı eklemek gerekmez.
+
+NuGet.org'daki Trusted Publishing kaydı şu değerlerle eşleşmelidir:
+
+| Alan | Değer |
+| --- | --- |
+| Package owner / NuGet kullanıcı adı | `uozturk` |
+| Publisher | `GitHubActions` |
+| Repository Owner | `ugurozturk` |
+| Repository | `UO.Analyzer` |
+| Workflow | `publish-nuget.yml` (yalnız dosya adı) |
+| Environment | Boş; workflow GitHub Environment kullanmıyor |
+| Scopes | `Push new packages and package versions` |
+| Glob pattern | `UO.*` (`UO.Analyzers` paketini kapsar) |
+
+1. NuGet.org hesabınızda bu Trusted Publishing kaydını oluşturun veya mevcut kaydı kullanın.
+2. Repository'nin varsayılan branch'i `main` olmalı; iki workflow dosyası da bu branch'te bulunmalı.
+3. `Directory.Build.props` içindeki `Version` değerini yayımlamak istediğiniz sürüme ayarlayıp
+   `main` branch'ine push edin.
+
+`build-test-pack` build, test, paket yapısı ve consumer kontrollerini çalıştırır.
+Başarılı tamamlanınca ayrı `publish-nuget` workflow'u, **aynı CI çalışmasının artifact'ındaki**
+paketi NuGet.org'a gönderir; paketi yeniden derlemez. Pull request, başka branch veya başarısız
+CI çalışmaları yayımlama yapmaz. `id-token: write` izniyle `NuGet/login@v1`, `uozturk`
+kullanıcısı adına GitHub OIDC token'ını NuGet'te geçici API key ile değiştirir. Bu anahtar
+yalnız yayımlama adımına aktarılır; kalıcı secret okunmaz.
+
+Sürüm otomatik artırılmaz. Aynı sürüm zaten NuGet.org'da varsa `--skip-duplicate` ile atlanır;
+yeni kodu dağıtmak için `Version` değerini artırın. Trusted Publishing kaydının alanları
+eşleşmezse, kayıt pasifse veya paket sahipliği uygun değilse yayımlama başarısız olur.
+Kaydı düzelttikten sonra `publish-nuget` çalışmasını yeniden çalıştırabilirsiniz;
+ilgili CI artifact'ı hâlâ mevcut olmalıdır.
+
+NuGet'te `Use within 7 day(s) to keep it permanently active` görünüyorsa kayıt geçici
+olarak aktiftir. Bu süre içinde ilk başarılı yayımlama kaydı kalıcı olarak etkinleştirir.
+Süre dolarsa NuGet'teki `Activate for 7 days` ile yeniden etkinleştirip yayımlamayı tekrarlayın.
+
+Kaynaklar: [NuGet Trusted Publishing](https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing),
+[NuGet/login action](https://github.com/NuGet/login).
 
 Consumer, `Microsoft.Extensions.Logging.Abstractions` ve onun logging source generator'ını
 içermelidir; framework/package üzerinden zaten geliyorsa tekrar eklemeye gerek yoktur.
