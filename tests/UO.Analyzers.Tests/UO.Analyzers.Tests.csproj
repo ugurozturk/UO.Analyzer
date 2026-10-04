@@ -10,6 +10,9 @@
     <ProjectReference Include="../../src/UO.Analyzers.CodeFixes/UO.Analyzers.CodeFixes.csproj" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <!-- Keep the EF 8.0.0 symbol fixture without its vulnerable transitive caching version. -->
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.CodeFix.Testing" />
     <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" GeneratePathProperty="true" ExcludeAssets="all" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" GeneratePathProperty="true" />

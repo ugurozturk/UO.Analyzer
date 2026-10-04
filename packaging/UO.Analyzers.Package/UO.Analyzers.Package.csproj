@@ -3,9 +3,9 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageId>UO.Analyzers</PackageId>
-    <Description>Company Roslyn analyzers, code fixes and refactorings. Includes a CA1848 source-generated logging code fix.</Description>
+    <Description>Roslyn analyzers and code fixes. Includes EF Core SQL translation checks and a CA1848 source-generated logging code fix.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageTags>roslyn;analyzers;codefix;logging;CA1848</PackageTags>
+    <PackageTags>roslyn;analyzers;codefix;logging;CA1848;efcore;UO0001</PackageTags>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <PackageOutputPath>../../artifacts/packages</PackageOutputPath>

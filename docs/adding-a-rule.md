@@ -1,5 +1,8 @@
 # Yeni analyzer, Code Fix veya refactoring ekleme
 
+UO0001 kapsamındaki yeni metot ve sağlayıcı desteği için
+[EF çeviri kataloğunu genişletme rehberini](adding-ef-translation-support.md) izleyin.
+
 ## Önce özelliğin sahibi
 
 - Şirket kuralı: `UO0001`, `UO0002`, … biçiminde yeni diagnostic ayırın.
