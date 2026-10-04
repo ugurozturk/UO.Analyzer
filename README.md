@@ -147,6 +147,7 @@ Mesajın içeriği, placeholder casing/format/alignment bilgisi ve exception kor
 - `LogTrace`, `LogDebug`, `LogInformation`, `LogWarning`, `LogError`, `LogCritical`.
 - `ILogger`, `ILogger<T>`; field, property, parameter ve yan etkili receiver expression'ları.
 - Sabit mesajlar, sıfır veya çok sayıda structured argüman, exception overload'u.
+- Interpolated mesajlar (`$"..."`, verbatim ve raw biçimler dahil), property erişimi ve koşullu ifadeler.
 - Semantik tipler: nullable, array, tuple, containing class'a ait generic tip parametreleri.
 - `OrderId → orderId`, `URL → url`, keyword için `@class`; format ve alignment korunur.
 - En yakın class'a method ekleme; nested class ve dış class'lara gerektiğinde `partial` ekleme.
@@ -154,11 +155,36 @@ Mesajın içeriği, placeholder casing/format/alignment bilgisi ve exception kor
 - Method/overload, local symbol, generator backing member ve explicit EventName çakışmalarından kaçınma.
 - Güvenli import ekleme, Simplifier ve Formatter; aynı isimli tiplerde qualification korunur.
 
+Interpolated mesajlarda ifadelerden benzersiz placeholder isimleri üretilir. Örneğin:
+
+```csharp
+Logger.LogInformation($"Successfully completed {tenant.Name} tenant database migrations.");
+```
+
+Dönüşümden sonra:
+
+```csharp
+LogSuccessfullyCompletedTenantDatabaseMigrations(Logger, $"{tenant.Name}");
+
+[LoggerMessage(Level = LogLevel.Information,
+    Message = "Successfully completed {TenantName} tenant database migrations.",
+    SkipEnabledCheck = true)]
+private static partial void LogSuccessfullyCompletedTenantDatabaseMigrations(ILogger logger, string tenantName);
+```
+
+Her interpolasyon kendi biçimlendirmesiyle `string` parametreye dönüşür. Böylece culture,
+format/alignment, null'ın boş metne dönüşmesi ve biçimlendirme yan etkilerinin sırası korunur.
+Yeni structured alanlar biçimlendirilmiş string değerler taşır; `{OriginalFormat}` sabit şablon olur.
+Bu dönüşüm interpolasyon maliyetini tamamen kaldırmaz. C# 9, handler desteği olmayan runtime,
+`await`/`dynamic` interpolasyonu veya literal ters eğik çizgi içeren mesajlarda tam ifade tek
+`{Message}` parametresi olarak korunur; bu yol değerlendirme sırası ve generator uyumluluğu içindir.
+
 ### İlk sürüm sınırları
 
 Güvenli eşleme yapılamıyorsa Code Action sunulmaz:
 
-- Runtime/interpolated mesajlar (sabit değer olarak çözülemeyenler), dynamic çağrılar.
+- Interpolated string dışındaki sabit olmayan mesajlar (örneğin runtime string değişkeni), dynamic çağrılar.
+- Interpolated mesajla birlikte ayrıca `params` argümanları verilmesi (iki aşamalı şablon yorumlama).
 - EventId overload'ları, static `LoggerExtensions.LogInformation(...)` biçimi, named argümanlar.
 - Explicit `params` array/null, mesaj/payload sayısının uyuşmaması, bozuk template.
 - Tekrarlı placeholder'lar (case-insensitive dahil): kaynak logging her occurrence için ayrı değer

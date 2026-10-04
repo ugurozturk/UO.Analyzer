@@ -56,18 +56,17 @@ internal sealed class LoggerMessageSyntaxFactory
             {
                 CreateNamedAttributeArgument("Level", MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
                     CreateSimplifiableTypeSyntax(logLevelType), IdentifierName(logging.Level))),
-                CreateNamedAttributeArgument("Message", CreateConstantMessageLiteral(logging.MessageExpression, cancellationToken)),
+                CreateNamedAttributeArgument("Message", CreateConstantMessageLiteral(logging)),
                 // LoggerExtensions always invokes ILogger.Log, even when disabled. Preserve this behavior.
                 CreateNamedAttributeArgument("SkipEnabledCheck", LiteralExpression(SyntaxKind.TrueLiteralExpression)),
             })));
     }
 
-    private LiteralExpressionSyntax CreateConstantMessageLiteral(ExpressionSyntax messageExpression, CancellationToken cancellationToken)
+    private static LiteralExpressionSyntax CreateConstantMessageLiteral(LoggingInvocation logging)
     {
-        var messageConstant = (string)semanticModel.GetConstantValue(messageExpression, cancellationToken).Value!;
-        return messageExpression is LiteralExpressionSyntax literal && literal.IsKind(SyntaxKind.StringLiteralExpression)
+        return logging.MessageExpression is LiteralExpressionSyntax literal && literal.IsKind(SyntaxKind.StringLiteralExpression)
             ? literal.WithoutTrivia()
-            : LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(messageConstant));
+            : LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(logging.Template.Message));
     }
 
     private TypeSyntax CreateSimplifiableTypeSyntax(ITypeSymbol symbol) =>
@@ -78,7 +77,9 @@ internal sealed class LoggerMessageSyntaxFactory
     {
         // Keep logger, exception, and payloads in their original evaluation order, each exactly once.
         var arguments = new List<ArgumentSyntax> { Argument(logging.Logger.WithoutTrivia()) };
-        arguments.AddRange(logging.Arguments.Select(argument => (ArgumentSyntax)argument.Expression.Parent!));
+        arguments.AddRange(logging.Arguments.Select(argument => argument.Expression.Parent is ArgumentSyntax original
+            ? original
+            : Argument(argument.Expression)));
         return InvocationExpression(IdentifierName(methodName), ArgumentList(SeparatedList(arguments)))
             .WithTriviaFrom(logging.Invocation)
             .WithAdditionalAnnotations(Formatter.Annotation);

@@ -61,19 +61,40 @@ internal static class LoggingInvocationAnalyzer
         if (arguments.Count <= sourceMessageIndex)
             return null;
         var messageExpression = arguments[sourceMessageIndex].Expression;
-        var constant = model.GetConstantValue(messageExpression, cancellationToken);
-        if (!constant.HasValue || constant.Value is not string message)
-            return null;
-        var template = MessageTemplate.TryParseSupportedTemplate(message);
-        if (template == null || template.Placeholders.Length != arguments.Count - sourceMessageIndex - 1)
-            return null;
-
         // Explicit params arrays change expansion/null semantics. Only individual object conversions are supported.
         var paramsOperation = operation.Arguments.LastOrDefault();
         if (paramsOperation == null || paramsOperation.ArgumentKind != ArgumentKind.ParamArray)
             return null;
 
-        var mappedArguments = TryMapArgumentsToLoggingParameters(arguments, template, hasException, loggerType, exceptionType, model, cancellationToken);
+        var constant = model.GetConstantValue(messageExpression, cancellationToken);
+        MessageTemplate? template;
+        ImmutableArray<LoggingArgument> mappedArguments;
+        if (constant.HasValue && constant.Value is string message)
+        {
+            template = MessageTemplate.TryParseSupportedTemplate(message);
+            if (template == null || template.Placeholders.Length != arguments.Count - sourceMessageIndex - 1)
+                return null;
+            mappedArguments = TryMapArgumentsToLoggingParameters(arguments, template, hasException, loggerType, exceptionType, model, cancellationToken);
+        }
+        else
+        {
+            var expression = messageExpression;
+            while (expression is ParenthesizedExpressionSyntax parenthesized)
+                expression = parenthesized.Expression;
+            // Additional params would interpret the already interpolated text as another template.
+            if (expression is not InterpolatedStringExpressionSyntax interpolated || arguments.Count != sourceMessageIndex + 1)
+                return null;
+            template = InterpolatedMessage.TryCreate(interpolated, model, cancellationToken, out mappedArguments);
+            if (template == null)
+                return null;
+            if (hasException)
+            {
+                var names = new HashSet<string>(mappedArguments.Select(argument => argument.Name), StringComparer.OrdinalIgnoreCase);
+                var exceptionName = LoggerMessageNaming.ReserveUniqueIdentifier("exception", names);
+                mappedArguments = mappedArguments.Insert(0, new LoggingArgument(exceptionName,
+                    exceptionType.WithNullableAnnotation(NullableAnnotation.Annotated), arguments[0].Expression));
+            }
+        }
         if (mappedArguments.IsDefault)
             return null;
 

@@ -9,14 +9,16 @@ namespace UO.Analyzers.CodeFixes.Logging;
 
 internal sealed class MessageTemplate
 {
-    private MessageTemplate(ImmutableArray<string> placeholders, string literalText)
+    private MessageTemplate(ImmutableArray<string> placeholders, string literalText, string message)
     {
         Placeholders = placeholders;
         LiteralText = literalText;
+        Message = message;
     }
 
     public ImmutableArray<string> Placeholders { get; }
     public string LiteralText { get; }
+    public string Message { get; }
 
     public static MessageTemplate? TryParseSupportedTemplate(string message)
     {
@@ -57,7 +59,7 @@ internal sealed class MessageTemplate
             index = closingBraceIndex;
         }
 
-        return new MessageTemplate(placeholders.ToImmutable(), literalText.ToString());
+        return new MessageTemplate(placeholders.ToImmutable(), literalText.ToString(), message);
     }
 
     private static string? TryExtractSupportedPlaceholderName(string placeholderContent)
