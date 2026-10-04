@@ -135,7 +135,7 @@ dotnet pack -c Release
 python3 scripts/verify-package.py artifacts/packages/UO.Analyzers.1.0.0.nupkg
 ```
 
-README'deki consumer restore/build kontrolünü de çalıştırın. Paket layout'unda yalnız iki ürün DLL'i
+[Geliştirme rehberindeki](development.md#local-validation) consumer restore/build kontrolünü de çalıştırın. Paket layout'unda yalnız iki ürün DLL'i
 `analyzers/dotnet/cs/` altında bulunur; `lib/` ve `runtimes/` asset'i, runtime dependency ve Roslyn DLL'i
 bulunmaz. Host bağımlılığı eklenmesi IDE loading kabul testini gerektirir.
 

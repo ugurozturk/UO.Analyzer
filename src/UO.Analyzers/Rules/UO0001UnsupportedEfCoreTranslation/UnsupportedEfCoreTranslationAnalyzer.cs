@@ -45,7 +45,7 @@ public sealed class UnsupportedEfCoreTranslationAnalyzer : DiagnosticAnalyzer
                 if (configuration.Profiles == ProviderProfiles.None)
                     return;
 
-                var locals = LocalQuerySources.Collect(blockContext.OperationBlocks, blockContext.CancellationToken);
+                var locals = LocalQuerySources.Collect(blockContext.OperationBlocks, symbols, blockContext.CancellationToken);
                 var sources = new QuerySourceAnalysis(symbols, locals, configuration.AssumeEfQueryable);
                 var queryContexts = new QueryContextAnalysis(symbols, sources);
                 blockContext.RegisterOperationAction(operationContext =>

@@ -8,9 +8,9 @@ namespace UO.Analyzers.Rules.UO0001UnsupportedEfCoreTranslation;
 internal static class LocalQuerySources
 {
     public static ImmutableDictionary<ILocalSymbol, IOperation> Collect(
-        ImmutableArray<IOperation> blocks, CancellationToken cancellationToken)
+        ImmutableArray<IOperation> blocks, QuerySymbols symbols, CancellationToken cancellationToken)
     {
-        var collector = new Collector(cancellationToken);
+        var collector = new Collector(symbols, cancellationToken);
         foreach (var block in blocks)
             collector.Visit(block);
         foreach (var written in collector.Written)
@@ -19,8 +19,9 @@ internal static class LocalQuerySources
     }
 
     // Scan each operation block once, including closures that may reassign a captured query.
-    // This deliberately rejects even assignments after the query: no speculative control-flow proof.
-    private sealed class Collector(CancellationToken cancellationToken) : OperationWalker
+    // Self-composition preserves the initializer's provider across branches and loops. Any other
+    // write still invalidates the local for the entire block, including earlier query uses.
+    private sealed class Collector(QuerySymbols symbols, CancellationToken cancellationToken) : OperationWalker
     {
         public ImmutableDictionary<ILocalSymbol, IOperation>.Builder Initializers { get; } =
             ImmutableDictionary.CreateBuilder<ILocalSymbol, IOperation>(SymbolEqualityComparer.Default);
@@ -46,7 +47,9 @@ internal static class LocalQuerySources
 
         public override void VisitSimpleAssignment(ISimpleAssignmentOperation operation)
         {
-            MarkWritten(operation.Target);
+            if (operation.IsRef || operation.Target is not ILocalReferenceOperation local
+                || !PreservesSource(operation.Value, local.Local))
+                MarkWritten(operation.Target);
             if (operation.IsRef)
                 MarkWritten(operation.Value);
             base.VisitSimpleAssignment(operation);
@@ -63,6 +66,28 @@ internal static class LocalQuerySources
             if (operation.Parameter?.RefKind is RefKind.Ref or RefKind.Out)
                 MarkWritten(operation.Value);
             base.VisitArgument(operation);
+        }
+
+        private bool PreservesSource(IOperation value, ILocalSymbol local)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            switch (value)
+            {
+                case ILocalReferenceOperation reference:
+                    return SymbolEqualityComparer.Default.Equals(reference.Local, local);
+                case IConversionOperation conversion when conversion.OperatorMethod is null:
+                    return PreservesSource(conversion.Operand, local);
+                case IParenthesizedOperation parentheses:
+                    return PreservesSource(parentheses.Operand, local);
+                case IInvocationOperation invocation when symbols.IsQueryable(invocation.Type):
+                    var declaringType = invocation.TargetMethod.ContainingType;
+                    return (SymbolEqualityComparer.Default.Equals(declaringType, symbols.Queryable)
+                            || SymbolEqualityComparer.Default.Equals(declaringType, symbols.EfExtensions))
+                        && QuerySymbols.SourceArgument(invocation) is { } source
+                        && PreservesSource(source, local);
+                default:
+                    return false;
+            }
         }
 
         private void MarkWritten(IOperation operation)

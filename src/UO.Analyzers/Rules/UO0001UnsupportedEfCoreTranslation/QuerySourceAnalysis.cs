@@ -23,7 +23,7 @@ internal sealed class QuerySourceAnalysis(QuerySymbols symbols,
             return true;
         if (source is ILocalReferenceOperation local)
         {
-            // Missing/reassigned locals remain unknown even in opt-in files; they may hold a materialized query.
+            // Missing/invalidated locals remain unknown even in opt-in files; they may hold a materialized query.
             return !visited.Contains(local.Local) && localSources.TryGetValue(local.Local, out var initializer)
                 && IsEfSource(initializer, visited.Add(local.Local), cancellationToken);
         }

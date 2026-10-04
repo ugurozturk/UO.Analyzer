@@ -107,6 +107,79 @@ public sealed class UnsupportedEfCoreTranslationTests
         await Create("var q = await GetQueryAsync(); _ = q.Where(x => x.Name.ToLowerInvariant() == term);").RunAsync();
     }
 
+    [Theory]
+    [InlineData("npgsql-8.0.0", "Npgsql 8.0.0")]
+    [InlineData("sqlite-8.0.0", "SQLite 8.0.0")]
+    public async Task AwaitedRepositoryWithConditionalFilters(string profile, string display)
+    {
+        var test = Create("""
+            var q = await GetQueryAsync().ConfigureAwait(false);
+            if (!string.IsNullOrWhiteSpace(term))
+            {
+                var filter = term.Trim().ToLowerInvariant();
+                q = q.Where(x => {|#0:x.Name.Contains(filter, StringComparison.InvariantCultureIgnoreCase)|}
+                    || {|#1:x.LastName.Contains(filter, StringComparison.InvariantCultureIgnoreCase)|}
+                    || (x.NullableName != null && {|#2:x.NullableName.Contains(filter, StringComparison.InvariantCultureIgnoreCase)|}));
+            }
+            if (term.Length > 0) q = q.Where(x => x.Name != "");
+            _ = await q.CountAsync().ConfigureAwait(false);
+            _ = await q.OrderBy(x => x.LastName).ThenBy(x => x.Name)
+                .Skip(0).Take(10).ToListAsync().ConfigureAwait(false);
+            """, profile, assumeEf: true);
+        for (var location = 0; location < 3; location++)
+            test.ExpectedDiagnostics.Add(new DiagnosticResult("UO0001", DiagnosticSeverity.Warning)
+                .WithLocation(location).WithArguments("string.Contains(string, StringComparison)", display, "Queryable.Where"));
+        await test.RunAsync();
+    }
+
+    [Theory]
+    [InlineData("q = q.Where(x => {|#0:x.Name.ToLowerInvariant()|} == term);")]
+    [InlineData("if (term.Length > 0) q = q.Where(x => {|#0:x.Name.ToLowerInvariant()|} == term);")]
+    [InlineData("q = q.AsNoTracking().OrderBy(x => x.Name).Skip(1).Take(10); _ = q.Where(x => {|#0:x.Name.ToLowerInvariant()|} == term);")]
+    [InlineData("q = Queryable.Where(predicate: x => {|#0:x.Name.ToLowerInvariant()|} == term, source: q);")]
+    [InlineData("q = ((IQueryable<Customer>)(q)).Where(x => {|#0:x.Name.ToLowerInvariant()|} == term);")]
+    [InlineData("while (term.Length > 0) { q = q.Where(x => {|#0:x.Name.ToLowerInvariant()|} == term); break; }")]
+    [InlineData("if (term.Length > 0) q = q.Where(x => x.Name != term); else q = q.OrderBy(x => x.Name); _ = q.Where(x => {|#0:x.Name.ToLowerInvariant()|} == term);")]
+    [InlineData("Action filter = () => q = q.Where(x => {|#0:x.Name.ToLowerInvariant()|} == term);")]
+    [InlineData("var alias = q; q = q.Where(x => x.Name != term); _ = alias.Where(x => {|#0:x.Name.ToLowerInvariant()|} == term);")]
+    public async Task QueryCompositionPreservesEfSource(string body)
+    {
+        var test = Create("IQueryable<Customer> q = db.Customers; " + body);
+        test.ExpectedDiagnostics.Add(Expected());
+        await test.RunAsync();
+    }
+
+    [Theory]
+    [InlineData("IQueryable<Customer> q = memory.AsQueryable();", "")]
+    [InlineData("IQueryable<Customer> q = db.Customers;", "q = memory.AsQueryable();")]
+    [InlineData("IQueryable<Customer> q = db.Customers;", "q = q.ToList().AsQueryable();")]
+    [InlineData("IQueryable<Customer> q = db.Customers;", "q = q.AsEnumerable().AsQueryable();")]
+    [InlineData("IQueryable<Customer> q = db.Customers;", "q = UnknownTransform(q);")]
+    [InlineData("IQueryable<Customer> q = db.Customers;", "if (term.Length > 0) q = memory.AsQueryable();")]
+    [InlineData("IQueryable<Customer> q = db.Customers;", "Action reset = () => q = memory.AsQueryable();")]
+    [InlineData("IQueryable<Customer> q = db.Customers;", "Reset(ref q);")]
+    [InlineData("IQueryable<Customer> q = db.Customers;", "(q, term) = (memory.AsQueryable(), term);")]
+    public async Task QueryCompositionDoesNotHideUnknownWrites(string initializer, string mutation)
+    {
+        await Create(initializer + """
+
+            q = q.Where(x => x.Name.Contains(term, StringComparison.InvariantCultureIgnoreCase));
+            """ + mutation + """
+
+            q = q.OrderBy(x => x.Name);
+            _ = q.Where(x => x.Name.Contains(term, StringComparison.InvariantCultureIgnoreCase));
+            """, assumeEf: true).RunAsync();
+    }
+
+    [Fact]
+    public async Task RepositoryCompositionStillRequiresOptIn()
+    {
+        await Create("""
+            var q = await GetQueryAsync().ConfigureAwait(false);
+            q = q.Where(x => x.Name.Contains(term, StringComparison.InvariantCultureIgnoreCase));
+            """).RunAsync();
+    }
+
     [Fact]
     public async Task ImplicitConversionStillDependsOnTheRow()
     {
@@ -267,6 +340,7 @@ public sealed class UnsupportedEfCoreTranslationTests
                 class Customer
                 {
                     public string Name { get; set; } = "";
+                    public string LastName { get; set; } = "";
                     public string? NullableName { get; set; }
                     public CustomText Custom { get; set; } = new();
                 }
@@ -286,6 +360,7 @@ public sealed class UnsupportedEfCoreTranslationTests
                     IQueryable<Customer> QueryProperty => GetQuery();
                     static bool Helper(Func<string> func) => true;
                     static void Reset(ref IQueryable<Customer> query) { }
+                    static IQueryable<Customer> UnknownTransform(IQueryable<Customer> query) => query;
                     async Task Run(Context db, IQueryable<Customer> query, List<Customer> memory, string term, Token token)
                     {
                         await Task.CompletedTask;

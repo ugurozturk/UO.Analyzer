@@ -24,6 +24,7 @@ her overload için yeni diagnostic veya Code Fix gerekmez.
 5. **Belgeleri ve release tracking'i güncelleyin.** UO0001 matrisine sabit kaynak bağlantılarını, sürümü
    ve sınırları ekleyin. Yeni profilin `.editorconfig` adını belgeleyin; gerekirse README örneklerini değiştirin.
    Descriptor/severity değişirse `AnalyzerReleases` biçimine uygun kaydedin; mevcut ID'yi yeniden kullanmayın.
-6. **Doğrulayın.** README'deki restore, Release build/test/pack, paket layout ve consumer kontrollerini çalıştırın.
+6. **Doğrulayın.** [Geliştirme rehberindeki](development.md#local-validation) restore, Release build/test/pack,
+   paket layout ve consumer kontrollerini çalıştırın.
    Roslyn testleri SQL çeviri kabul testi değildir. Gerçek provider kabulünü ayrıca doğrulamadan doğrulanmış
    runtime davranışı olarak sunmayın. Analyzer assembly'sine EF runtime veya Workspaces bağımlılığı eklemeyin.
