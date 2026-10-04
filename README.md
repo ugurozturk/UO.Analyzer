@@ -1,87 +1,44 @@
 # UO.Analyzers
 
-C# Roslyn analyzer, diagnostic, Code Fix ve refactoring'leri için ortak repository.
-İlk özellik, **Microsoft CA1848** diagnostic'ine **Convert to source-generated LoggerMessage**
-Code Action'ını ekler. CA1848 analyzer'ı yeniden yazılmaz; diagnostic Microsoft'un .NET analyzer'ından gelir.
-Bu sürüm henüz `UO000X` kuralı yayımlamaz.
+A Roslyn Code Fix package for C# projects. Converts `ILogger` calls flagged by
+**CA1848** into source-generated `LoggerMessage` methods.
+Microsoft's .NET analyzer produces the CA1848 warning; this package provides the conversion action.
 
-## Kurulum
+## Installation
 
-Paketi NuGet.org'a yayımladıktan sonra consumer projeye ekleyin:
+Add the following package reference to your project, replacing `x.y.z` with the
+package version you want to use:
 
 ```xml
 <PackageReference Include="UO.Analyzers"
-                  Version="1.0.0"
+                  Version="x.y.z"
                   PrivateAssets="all" />
 ```
 
-Sürümü yayımlanan `x.y.z` ile değiştirin. Lokal deneme için `artifacts/packages` klasörünü
-NuGet source olarak kullanabilirsiniz. Repository oluşturulması paketi herhangi bir feed'e yayımlamaz.
+Your project must include `Microsoft.Extensions.Logging.Abstractions` and the logging
+source generator. If these are already provided by your framework or another package,
+you do not need to add them again.
 
-### NuGet.org'a otomatik yayımlama
-
-Yayımlama **Trusted Publishing (GitHub OIDC)** kullanır; GitHub'a kalıcı NuGet API key
-veya `NUGET_API_KEY` repository secret'ı eklemek gerekmez.
-
-NuGet.org'daki Trusted Publishing kaydı şu değerlerle eşleşmelidir:
-
-| Alan | Değer |
-| --- | --- |
-| Package owner / NuGet kullanıcı adı | `uozturk` |
-| Publisher | `GitHubActions` |
-| Repository Owner | `ugurozturk` |
-| Repository | `UO.Analyzer` |
-| Workflow | `publish-nuget.yml` (yalnız dosya adı) |
-| Environment | Boş; workflow GitHub Environment kullanmıyor |
-| Scopes | `Push new packages and package versions` |
-| Glob pattern | `UO.*` (`UO.Analyzers` paketini kapsar) |
-
-1. NuGet.org hesabınızda bu Trusted Publishing kaydını oluşturun veya mevcut kaydı kullanın.
-2. Repository'nin varsayılan branch'i `main` olmalı; iki workflow dosyası da bu branch'te bulunmalı.
-3. `Directory.Build.props` içindeki `Version` değerini yayımlamak istediğiniz sürüme ayarlayıp
-   `main` branch'ine push edin.
-
-`build-test-pack` build, test, paket yapısı ve consumer kontrollerini çalıştırır.
-Başarılı tamamlanınca ayrı `publish-nuget` workflow'u, **aynı CI çalışmasının artifact'ındaki**
-paketi NuGet.org'a gönderir; paketi yeniden derlemez. Pull request, başka branch veya başarısız
-CI çalışmaları yayımlama yapmaz. `id-token: write` izniyle `NuGet/login@v1`, `uozturk`
-kullanıcısı adına GitHub OIDC token'ını NuGet'te geçici API key ile değiştirir. Bu anahtar
-yalnız yayımlama adımına aktarılır; kalıcı secret okunmaz.
-
-Sürüm otomatik artırılmaz. Aynı sürüm zaten NuGet.org'da varsa `--skip-duplicate` ile atlanır;
-yeni kodu dağıtmak için `Version` değerini artırın. Trusted Publishing kaydının alanları
-eşleşmezse, kayıt pasifse veya paket sahipliği uygun değilse yayımlama başarısız olur.
-Kaydı düzelttikten sonra `publish-nuget` çalışmasını yeniden çalıştırabilirsiniz;
-ilgili CI artifact'ı hâlâ mevcut olmalıdır.
-
-NuGet'te `Use within 7 day(s) to keep it permanently active` görünüyorsa kayıt geçici
-olarak aktiftir. Bu süre içinde ilk başarılı yayımlama kaydı kalıcı olarak etkinleştirir.
-Süre dolarsa NuGet'teki `Activate for 7 days` ile yeniden etkinleştirip yayımlamayı tekrarlayın.
-
-Kaynaklar: [NuGet Trusted Publishing](https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing),
-[NuGet/login action](https://github.com/NuGet/login).
-
-Consumer, `Microsoft.Extensions.Logging.Abstractions` ve onun logging source generator'ını
-içermelidir; framework/package üzerinden zaten geliyorsa tekrar eklemeye gerek yoktur.
-CA1848'in görünür olması için consumer `.editorconfig` dosyasında:
+Enable .NET analyzers (`EnableNETAnalyzers=true`) and enable the CA1848 warning
+in your `.editorconfig` file:
 
 ```ini
 [*.cs]
 dotnet_diagnostic.CA1848.severity = warning
 ```
 
-.NET SDK analyzer'larının etkin olduğundan emin olun (`EnableNETAnalyzers=true`).
-UO.Analyzers bu ayarı consumer adına değiştirmez ve Microsoft analyzer'ını paketine kopyalamaz.
-Paket runtime dependency değildir: DLL'ler yalnızca `analyzers/dotnet/cs/` altında bulunur;
-consumer'ın runtime çıktısına kopyalanmaz.
+### Requirements
 
-Analyzer ve Code Fix assembly'leri **netstandard2.0 / Roslyn 4.14** hedefler.
-IDE host'unun Roslyn 4.14 veya daha yeni bir sürüm kullanması gerekir; bu taban sürüm daha
-geniş IDE uyumluluğu için bilinçli seçilmiştir. Consumer için C# 9+ gerekir. Otomatik testlerin
-referans ortamı .NET 10 ve Logging.Abstractions 10.0.5'tir; diğer IDE/generator sürümleri
-ayrıca kabul testinden geçirilmelidir. IDE'nin NuGet CodeFixProvider keşfini desteklemesi gerekir.
+- C# 9 or later.
+- An IDE that uses Roslyn 4.14 or later and supports discovering Code Fix providers from NuGet packages.
 
-## CA1848 dönüşümü
+The package is used only during development and adds no runtime dependency to your application.
+
+## Usage
+
+For a supported logging call with a CA1848 warning, select
+**Convert to source-generated LoggerMessage** from your IDE's Quick Fix menu.
+The required `partial` declarations and logging method are added automatically.
 
 Before:
 
@@ -123,128 +80,36 @@ public partial class OrderService
 }
 ```
 
-Mevcut `LoggerExtensions` çağrısı `ILogger.Log` metodunu seviyenin açık olup olmadığına
-bakmadan çağırır. `SkipEnabledCheck = true` bu davranışı korur; uygulamanızda isteniyorsa
-seviye kontrolü ayrıca tasarlanabilir. Receiver, exception ve payload expression'ları
-özgün sırayla, birer kez değerlendirilir. Bu nedenle exception parametresi payload'lardan
-**önce** kalır:
+### Supported calls
 
-```csharp
-LogProcessingFailed(logger, exception, orderId);
+- `LogTrace`, `LogDebug`, `LogInformation`, `LogWarning`, `LogError`, and `LogCritical`.
+- Calls through `ILogger` and `ILogger<T>`.
+- Constant message templates, structured logging arguments, and exception overloads.
+- Interpolated messages, including verbatim and raw string forms.
+- Nested classes and existing partial classes.
 
-[LoggerMessage(Level = LogLevel.Error, Message = "Processing {OrderId} failed", SkipEnabledCheck = true)]
-private static partial void LogProcessingFailed(ILogger logger, Exception? exception, int orderId);
-```
+### Conversion behavior
 
-**Event metadata:** standart source-generated logging'e geçişle generator, method isminden
-EventId/EventName üretir. Önceki çağrıdaki varsayılan `0`/isimsiz event korunmaz.
-Tüm method'lara `EventId = 0` yazmak tekrarlı ID uyarılarına yol açtığından böyle bir değişiklik
-yapılmaz. Event metadata'ya göre filtreleme yapan uygulamalar dönüşümü buna göre değerlendirmelidir.
-Mesajın içeriği, placeholder casing/format/alignment bilgisi ve exception korunur.
+- The logger, exception, and message arguments are evaluated once each, in their original order.
+- `SkipEnabledCheck = true` preserves the existing call's log level checking behavior.
+- For constant templates, the message, placeholder names, formatting/alignment, and exception are preserved.
+- The generator derives EventId/EventName from the method name; the previous default `0`/unnamed event
+  is not preserved. Review the conversion if your application filters logs by event metadata.
+- Interpolated message values become formatted `string` parameters, and `{OriginalFormat}`
+  becomes a constant template. In some cases, the entire message is preserved as a single
+  `{Message}` parameter. This conversion does not eliminate all interpolation costs.
 
-### Desteklenenler
+### Limitations
 
-- `LogTrace`, `LogDebug`, `LogInformation`, `LogWarning`, `LogError`, `LogCritical`.
-- `ILogger`, `ILogger<T>`; field, property, parameter ve yan etkili receiver expression'ları.
-- Sabit mesajlar, sıfır veya çok sayıda structured argüman, exception overload'u.
-- Interpolated mesajlar (`$"..."`, verbatim ve raw biçimler dahil), property erişimi ve koşullu ifadeler.
-- Semantik tipler: nullable, array, tuple, containing class'a ait generic tip parametreleri.
-- `OrderId → orderId`, `URL → url`, keyword için `@class`; format ve alignment korunur.
-- En yakın class'a method ekleme; nested class ve dış class'lara gerektiğinde `partial` ekleme.
-- File-scoped/block namespace, mevcut partial class, farklı partial dosyalardaki üye çakışmaları.
-- Method/overload, local symbol, generator backing member ve explicit EventName çakışmalarından kaçınma.
-- Güvenli import ekleme, Simplifier ve Formatter; aynı isimli tiplerde qualification korunur.
+The action is not offered when a call cannot be converted safely. The main unsupported cases are:
 
-Interpolated mesajlarda ifadelerden benzersiz placeholder isimleri üretilir. Örneğin:
+- Nonconstant messages other than interpolated strings, and dynamic calls.
+- `EventId` overloads, static `LoggerExtensions` calls, and named arguments.
+- Explicit `params` arrays/null, or additional `params` arguments with an interpolated message.
+- Malformed templates, argument count mismatches, and repeated or unsupported placeholder names.
+- `Exception`, `ILogger`, or `LogLevel` as structured payloads; anonymous, dynamic,
+  ref-like, pointer, or generic method type parameters.
+- Conditional access, expression-bodied calls, expression trees, and top-level code.
+- Structs, records, interfaces, file-local types, or preprocessor directives in the containing type.
 
-```csharp
-Logger.LogInformation($"Successfully completed {tenant.Name} tenant database migrations.");
-```
-
-Dönüşümden sonra:
-
-```csharp
-LogSuccessfullyCompletedTenantDatabaseMigrations(Logger, $"{tenant.Name}");
-
-[LoggerMessage(Level = LogLevel.Information,
-    Message = "Successfully completed {TenantName} tenant database migrations.",
-    SkipEnabledCheck = true)]
-private static partial void LogSuccessfullyCompletedTenantDatabaseMigrations(ILogger logger, string tenantName);
-```
-
-Her interpolasyon kendi biçimlendirmesiyle `string` parametreye dönüşür. Böylece culture,
-format/alignment, null'ın boş metne dönüşmesi ve biçimlendirme yan etkilerinin sırası korunur.
-Yeni structured alanlar biçimlendirilmiş string değerler taşır; `{OriginalFormat}` sabit şablon olur.
-Bu dönüşüm interpolasyon maliyetini tamamen kaldırmaz. C# 9, handler desteği olmayan runtime,
-`await`/`dynamic` interpolasyonu veya literal ters eğik çizgi içeren mesajlarda tam ifade tek
-`{Message}` parametresi olarak korunur; bu yol değerlendirme sırası ve generator uyumluluğu içindir.
-
-### İlk sürüm sınırları
-
-Güvenli eşleme yapılamıyorsa Code Action sunulmaz:
-
-- Interpolated string dışındaki sabit olmayan mesajlar (örneğin runtime string değişkeni), dynamic çağrılar.
-- Interpolated mesajla birlikte ayrıca `params` argümanları verilmesi (iki aşamalı şablon yorumlama).
-- EventId overload'ları, static `LoggerExtensions.LogInformation(...)` biçimi, named argümanlar.
-- Explicit `params` array/null, mesaj/payload sayısının uyuşmaması, bozuk template.
-- Tekrarlı placeholder'lar (case-insensitive dahil): kaynak logging her occurrence için ayrı değer
-  alır, generator ise isme göre eşler. Değerleri birleştirmek veya yeniden adlandırmak log semantiğini değiştirir.
-- C# identifier'ına eşlenemeyen, `_` ile başlayan, numeric veya destructuring placeholder'ları.
-- Structured payload olarak Exception/ILogger/LogLevel; generator bu tipleri özel yorumlar.
-- Anonymous, dynamic, ref-like, pointer veya generic method'a ait tipler.
-- Conditional access, expression-bodied çağrılar, expression tree, top-level, struct/record/interface/file-local type.
-- Containing type içerisinde preprocessor directive bulunan durumlar.
-- Fix All: ortak type ve method isimlerini değiştiren edit'ler için BatchFixer kullanılmaz.
-
-Sabit yerel mesaj değişkenleri attribute'a literal olarak taşınır; artık kullanılmayan local const
-varsa consumer'ın normal unused-variable diagnostic'i görünebilir. Kaynakta mevcut hatalı kod
-ve generator'ın consumer tarafından devre dışı bırakılması ayrıca düzeltilmelidir.
-
-## Yapı
-
-```text
-src/UO.Analyzers/                  # Diagnostics, Rules, paylaşılan compiler yardımcıları
-src/UO.Analyzers.CodeFixes/        # Logging ve IDE tarafı yardımcılar; ileride Refactorings/
-tests/UO.Analyzers.Tests/          # Roslyn verifier, gerçek analyzer/generator ve runtime testleri
-tests/PackageConsumer/            # Paket üretildikten sonra çalışan ayrı consumer smoke projesi
-packaging/UO.Analyzers.Package/    # Tek dağıtım paketi
-docs/adding-a-rule.md             # UO000X analyzer + Code Fix geliştirme rehberi
-scripts/verify-package.py         # NuGet layout ve consumer runtime asset kontrolü
-UO.Analyzers.slnx
-```
-
-`UO.Analyzers` yalnız compiler API'lerine bağımlıdır. Code Fix tarafı Workspaces/MEF kullanır.
-Roslyn, System.Composition ve test dependency'leri NuGet paketine taşınmaz; IDE kendi host
-assembly'lerini sağlar. Gelecekte Code Fix'ler ortak diagnostic sabitlerine ihtiyaç duyarsa
-CodeFixes → Analyzers project reference eklenebilir; ters bağımlılık kurulmaz.
-
-## Geliştirme ve doğrulama
-
-`global.json` ile sabitlenen .NET 10 SDK ve paket kontrolü için Python 3 gerekir:
-
-```bash
-dotnet restore
-dotnet build
-dotnet test
-dotnet pack -c Release
-python3 scripts/verify-package.py artifacts/packages/UO.Analyzers.1.0.0.nupkg
-dotnet restore tests/PackageConsumer/PackageConsumer.csproj --source ./artifacts/packages --source https://api.nuget.org/v3/index.json --packages ./artifacts/consumer-packages
-dotnet build tests/PackageConsumer/PackageConsumer.csproj -c Release --no-restore
-python3 scripts/verify-package.py artifacts/packages/UO.Analyzers.1.0.0.nupkg --consumer tests/PackageConsumer
-```
-
-Consumer smoke projesi, restore öncesinde pakete ihtiyaç duyduğu için solution'a dahil değildir.
-CI bu sırayı uygular. Testler yalnız sentetik diagnostic'e dayanmaz: Microsoft CA1848 analyzer'ını
-çalıştırır, Microsoft logging generator'ıyla dönüşüm sonucunu derler, Roslyn CodeFix.Testing
-ile tam kaynak çıktısını karşılaştırır ve üretilmiş assembly'leri çalıştırarak argüman sırasını,
-exception'ı, formatted message ve structured state'i denetler. IDE içinde manuel Quick Fix
-keşif testi otomatik testlerden ayrı bir kabul adımıdır.
-
-Yeni kural için `UO0001` ile başlayan kullanılmamış bir ID ayırın, `Rules/` altında analyzer'ı,
-CodeFixes altında provider'ı ve tests altında pozitif/negatif testleri ekleyin. Descriptor'lar
-doğrudan oluşturulur; ortak ID/category sabitleri kullanılır. Ayrıntılar:
-[yeni kural ekleme rehberi](docs/adding-a-rule.md).
-
-Microsoft referansları: [source-generated logging](https://learn.microsoft.com/en-us/dotnet/core/extensions/logging/source-generation),
-[CA1848](https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/ca1848),
-[duplicate EventId diagnostic](https://learn.microsoft.com/en-us/dotnet/fundamentals/syslib-diagnostics/syslib1006).
+**Fix All is not supported;** apply the conversion to each call individually.
