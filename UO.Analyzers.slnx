@@ -5,6 +5,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/UO.Analyzers.Tests/UO.Analyzers.Tests.csproj" />
+    <Project Path="tests/UO.Analyzers.Oracle.Tests/UO.Analyzers.Oracle.Tests.csproj" />
   </Folder>
   <Folder Name="/packaging/">
     <Project Path="packaging/UO.Analyzers.Package/UO.Analyzers.Package.csproj" />

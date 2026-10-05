@@ -30,8 +30,8 @@ Add the following to the consuming project's `.editorconfig`:
 ```ini
 [*.cs]
 dotnet_diagnostic.UO0001.severity = warning
-# Select one or both verified provider profiles.
-dotnet_code_quality.UO0001.ef_core_providers = npgsql-8.0.0, sqlite-8.0.0
+# Select the verified provider profile(s) used by your application.
+dotnet_code_quality.UO0001.ef_core_providers = npgsql-8.0.0, sqlite-8.0.0, oracle-10.23.26000
 
 # Replace this filename with the file containing your EF IQueryable helpers.
 [**/CustomerQueryHelpers.cs]
@@ -39,7 +39,7 @@ dotnet_code_quality.UO0001.assume_ef_core_queryable = true
 ```
 
 `assume_ef_core_queryable` asserts that otherwise unknown queryable sources in the matching file
-are EF queries; scope it to the relevant files. The profile suffix `8.0.0` is the verified **EF provider
+are EF queries; scope it to the relevant files. The profile suffix (such as `8.0.0` or `10.23.26000`) is the verified **EF provider
 version**, not the UO.Analyzers package version. Provider selection is not inferred from installed packages.
 
 See [UO0001 configuration and troubleshooting](https://github.com/ugurozturk/UO.Analyzer/blob/main/docs/rules/UO0001.md#configuration)

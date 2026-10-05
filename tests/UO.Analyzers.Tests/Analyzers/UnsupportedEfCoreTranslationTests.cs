@@ -30,7 +30,11 @@ public sealed class UnsupportedEfCoreTranslationTests
             {
                 ("npgsql-8.0.0", "Npgsql 8.0.0"),
                 ("sqlite-8.0.0", "SQLite 8.0.0"),
+                ("oracle-10.23.26000", "Oracle 10.23.26000"),
                 ("npgsql-8.0.0,sqlite-8.0.0", "Npgsql 8.0.0, SQLite 8.0.0"),
+                ("npgsql-8.0.0,oracle-10.23.26000", "Npgsql 8.0.0, Oracle 10.23.26000"),
+                ("oracle-10.23.26000,sqlite-8.0.0", "SQLite 8.0.0, Oracle 10.23.26000"),
+                ("oracle-10.23.26000,sqlite-8.0.0,npgsql-8.0.0", "Npgsql 8.0.0, SQLite 8.0.0, Oracle 10.23.26000"),
             })
                 yield return [expression, signature, profile, display];
         }
@@ -110,6 +114,7 @@ public sealed class UnsupportedEfCoreTranslationTests
     [Theory]
     [InlineData("npgsql-8.0.0", "Npgsql 8.0.0")]
     [InlineData("sqlite-8.0.0", "SQLite 8.0.0")]
+    [InlineData("oracle-10.23.26000", "Oracle 10.23.26000")]
     public async Task AwaitedRepositoryWithConditionalFilters(string profile, string display)
     {
         var test = Create("""
@@ -242,6 +247,7 @@ public sealed class UnsupportedEfCoreTranslationTests
     public async Task SupportedOrUnprovenCallsAreNotDiagnosedEvenWithOptIn(string body)
     {
         await Create(body, assumeEf: true).RunAsync();
+        await Create(body, "oracle-10.23.26000", assumeEf: true).RunAsync();
     }
 
     [Theory]
@@ -259,17 +265,22 @@ public sealed class UnsupportedEfCoreTranslationTests
     [InlineData("")]
     [InlineData("npgsql")]
     [InlineData("sqlite-9.0.0")]
+    [InlineData("oracle")]
+    [InlineData("oracle-10.0.0")]
+    [InlineData("oracle-10.23.26001")]
     [InlineData("unknown")]
     public async Task NoKnownProfileMeansNoClaim(string profile)
     {
         await Create("_ = db.Customers.Where(x => x.Name.ToLowerInvariant() == term);", profile).RunAsync();
     }
 
-    [Fact]
-    public async Task UnknownProfileIsNotNamedInTheDiagnostic()
+    [Theory]
+    [InlineData("unknown, SQLITE-8.0.0,sqlite-8.0.0", "SQLite 8.0.0")]
+    [InlineData("unknown, ORACLE-10.23.26000,oracle-10.23.26000", "Oracle 10.23.26000")]
+    public async Task UnknownProfileIsNotNamedInTheDiagnostic(string profile, string display)
     {
-        var test = Create("_ = db.Customers.Where(x => {|#0:x.Name.ToLowerInvariant()|} == term);", "unknown, SQLITE-8.0.0,sqlite-8.0.0");
-        test.ExpectedDiagnostics.Add(Expected(profile: "SQLite 8.0.0"));
+        var test = Create("_ = db.Customers.Where(x => {|#0:x.Name.ToLowerInvariant()|} == term);", profile);
+        test.ExpectedDiagnostics.Add(Expected(profile: display));
         await test.RunAsync();
     }
 

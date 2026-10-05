@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace UO.Analyzers.Rules.UO0001UnsupportedEfCoreTranslation;
@@ -9,6 +10,7 @@ internal enum ProviderProfiles
     None = 0,
     Npgsql800 = 1,
     Sqlite800 = 2,
+    Oracle102326000 = 4,
 }
 
 internal readonly struct ProviderConfiguration
@@ -36,6 +38,8 @@ internal readonly struct ProviderConfiguration
                     profiles |= ProviderProfiles.Npgsql800;
                 else if (string.Equals(item.Trim(), "sqlite-8.0.0", StringComparison.OrdinalIgnoreCase))
                     profiles |= ProviderProfiles.Sqlite800;
+                else if (string.Equals(item.Trim(), "oracle-10.23.26000", StringComparison.OrdinalIgnoreCase))
+                    profiles |= ProviderProfiles.Oracle102326000;
             }
         }
 
@@ -44,11 +48,15 @@ internal readonly struct ProviderConfiguration
         return new ProviderConfiguration(profiles, assumeEf);
     }
 
-    public static string Display(ProviderProfiles profiles) => profiles switch
+    public static string Display(ProviderProfiles profiles)
     {
-        ProviderProfiles.Npgsql800 => "Npgsql 8.0.0",
-        ProviderProfiles.Sqlite800 => "SQLite 8.0.0",
-        ProviderProfiles.Npgsql800 | ProviderProfiles.Sqlite800 => "Npgsql 8.0.0, SQLite 8.0.0",
-        _ => string.Empty,
-    };
+        var labels = new List<string>(3);
+        if ((profiles & ProviderProfiles.Npgsql800) != 0)
+            labels.Add("Npgsql 8.0.0");
+        if ((profiles & ProviderProfiles.Sqlite800) != 0)
+            labels.Add("SQLite 8.0.0");
+        if ((profiles & ProviderProfiles.Oracle102326000) != 0)
+            labels.Add("Oracle 10.23.26000");
+        return string.Join(", ", labels);
+    }
 }

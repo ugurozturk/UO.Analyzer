@@ -9,6 +9,9 @@ her overload için yeni diagnostic veya Code Fix gerekmez.
    `IMethodSymbol` çözümleyin. Yalnız invocation metni veya metot adı üzerinden eşleştirmeyin.
 2. **Sağlayıcı ve sürümü doğrulayın.** Resmi dokümantasyonun yanında sabit release tag'indeki translator,
    SQL visitor ve translator kayıtlarını okuyun. Ortak relational çeviricilerini de kontrol edin.
+   Kaynağı yayımlanmayan sağlayıcılar için sabit paket/EF Core sürümleriyle gerçek çeviri hattını
+   `ToQueryString()` üzerinden test edin; unsupported imzaların yanında desteklenen komşu overloadları da
+   doğrulayın. Oracle test projesi bu yaklaşımın örneğidir; veritabanı bağlantısı açmaz.
    Dokümantasyonda görünmemek tek başına unsupported kanıtı değildir. Kanıt yoksa kataloğa eklemeyin.
    Yeni sürüm için ayrı profil tanımlayın; eski profilin doğrulama kapsamını sessizce genişletmeyin.
 3. **Kataloğa ekleyin.** `TranslationRules.Create` içinde uygun imza tanımını ve doğrulanmış profil

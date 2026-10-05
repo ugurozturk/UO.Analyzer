@@ -14,7 +14,8 @@ internal static class TranslationRules
         var culture = compilation.GetTypeByMetadataName("System.Globalization.CultureInfo");
         var comparison = compilation.GetTypeByMetadataName("System.StringComparison");
         var rules = ImmutableArray.CreateBuilder<UnsupportedMethodRule>();
-        const ProviderProfiles profiles = ProviderProfiles.Npgsql800 | ProviderProfiles.Sqlite800;
+        const ProviderProfiles profiles = ProviderProfiles.Npgsql800 | ProviderProfiles.Sqlite800
+            | ProviderProfiles.Oracle102326000;
 
         // Case conversion and comparison are independent families sharing exact signature matching.
         Add("ToLowerInvariant", false, text);

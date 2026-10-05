@@ -21,7 +21,9 @@ dotnet build tests/PackageConsumer/PackageConsumer.csproj -c Release --no-restor
 python3 scripts/verify-package.py "artifacts/packages/UO.Analyzers.${package_version}.nupkg" --consumer tests/PackageConsumer
 ```
 
-Analyzer tests verify compiler/editor diagnostics against real EF metadata, not database translation acceptance.
-Manual IDE discovery and actual application/provider translation remain separate acceptance checks.
+Roslyn analyzer tests verify compiler/editor diagnostics against real EF metadata. The separate
+`UO.Analyzers.Oracle.Tests` project verifies the pinned Oracle provider's SQL translation using
+`ToQueryString()` without a database connection; it runs as part of `dotnet test`.
+Manual IDE discovery and live database execution remain separate acceptance checks.
 
 [Back to README](../README.md)
