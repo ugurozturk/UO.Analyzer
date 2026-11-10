@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Oracle.EntityFrameworkCore" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
     <!-- Pin the runtime used to verify this provider snapshot; Roslyn fixtures stay on EF 8. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore" VersionOverride="10.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
