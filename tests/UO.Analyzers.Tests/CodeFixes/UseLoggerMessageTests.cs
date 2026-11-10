@@ -46,6 +46,27 @@ public sealed class UseLoggerMessageTests
     }
 
     [Theory]
+    [InlineData("İşlem başarıyla oluşturuldu", "LogIslemBasariylaOlusturuldu")]
+    [InlineData("çğ ıi öşü ÇĞ İI ÖŞÜ", "LogCgIiOsuCGIIOSU")]
+    public async Task TransliteratesTurkishCharactersInMethodNamesAndPreservesMessage(string message, string methodName)
+    {
+        using var host = new LoggingTestHost(CreateServiceSource($"_logger.LogInformation(\"{message}\");"));
+        var result = await host.ApplyLoggingFixAndVerifyCompilationAsync();
+        Assert.Contains(methodName + "(_logger);", result);
+        Assert.Contains("private static partial void " + methodName + "(ILogger logger)", result);
+        Assert.Contains("Message = \"" + message + "\"", result);
+    }
+
+    [Fact]
+    public async Task HandlesCollisionsAfterTurkishTransliteration()
+    {
+        using var host = new LoggingTestHost(CreateServiceSource("_logger.LogInformation(\"İşlem başladı\");",
+            "private void LogIslemBasladi() {}"));
+        var result = await host.ApplyLoggingFixAndVerifyCompilationAsync();
+        Assert.Contains("LogIslemBasladi2(_logger);", result);
+    }
+
+    [Theory]
     [InlineData("ILogger")]
     [InlineData("ILogger<Service>")]
     public async Task InfersStructuredTypes(string loggerType)
